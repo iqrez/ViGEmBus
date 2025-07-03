@@ -65,7 +65,7 @@ ViGEm::Bus::Targets::EmulationTargetDS4::EmulationTargetDS4(ULONG Serial, LONG S
 NTSTATUS ViGEm::Bus::Targets::EmulationTargetDS4::PdoPrepareDevice(PWDFDEVICE_INIT DeviceInit,
 	PUNICODE_STRING DeviceId, PUNICODE_STRING DeviceDescription)
 {
-	NTSTATUS status;
+        NTSTATUS status;
 	DECLARE_UNICODE_STRING_SIZE(buffer, _maxHardwareIdLength);
 
 	// prepare device description
@@ -175,7 +175,6 @@ NTSTATUS ViGEm::Bus::Targets::EmulationTargetDS4::PdoPrepareHardware()
 
 NTSTATUS ViGEm::Bus::Targets::EmulationTargetDS4::PdoInitContext()
 {
-	NTSTATUS status;
 
 	// Initialize periodic timer
 	WDF_TIMER_CONFIG timerConfig;
@@ -192,160 +191,160 @@ NTSTATUS ViGEm::Bus::Targets::EmulationTargetDS4::PdoInitContext()
 	// PDO is parent
 	timerAttribs.ParentObject = this->_PdoDevice;
 
-	do
-	{
-		// Create timer
-		if (!NT_SUCCESS(status = WdfTimerCreate(
-			&timerConfig,
-			&timerAttribs,
-			&this->_PendingUsbInRequestsTimer
-		)))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfTimerCreate failed with status %!STATUS!",
-				status);
-			break;
-		}
+        NTSTATUS result;
+        WDFKEY keyParams = NULL, keyTargets = NULL, keyDS = NULL, keySerial = NULL;
 
-		// Load/generate MAC address
+        // Create timer
+        result = WdfTimerCreate(
+                &timerConfig,
+                &timerAttribs,
+                &this->_PendingUsbInRequestsTimer
+        );
+        if (!NT_SUCCESS(result))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfTimerCreate failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-		// 
-		// TODO: tidy up this region
-		// 
+        // Load/generate MAC address
 
-		WDFKEY keyParams, keyTargets, keyDS, keySerial;
-		UNICODE_STRING keyName, valueName;
+        //
+        // TODO: tidy up this region
+        //
 
-		if (!NT_SUCCESS(status = WdfDriverOpenParametersRegistryKey(
-			WdfGetDriver(),
-			STANDARD_RIGHTS_ALL,
-			WDF_NO_OBJECT_ATTRIBUTES,
-			&keyParams
-		)))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfDriverOpenParametersRegistryKey failed with status %!STATUS!",
-				status);
-			break;
-		}
+        UNICODE_STRING keyName, valueName;
 
-		RtlUnicodeStringInit(&keyName, L"Targets");
+        if (!NT_SUCCESS(result = WdfDriverOpenParametersRegistryKey(
+                WdfGetDriver(),
+                STANDARD_RIGHTS_ALL,
+                WDF_NO_OBJECT_ATTRIBUTES,
+                &keyParams
+        )))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfDriverOpenParametersRegistryKey failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-		if (!NT_SUCCESS(status = WdfRegistryCreateKey(
-			keyParams,
-			&keyName,
-			KEY_ALL_ACCESS,
-			REG_OPTION_NON_VOLATILE,
-			nullptr,
-			WDF_NO_OBJECT_ATTRIBUTES,
-			&keyTargets
-		)))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfRegistryCreateKey failed with status %!STATUS!",
-				status);
-			break;
-		}
+        RtlUnicodeStringInit(&keyName, L"Targets");
 
-		RtlUnicodeStringInit(&keyName, L"DualShock");
+        if (!NT_SUCCESS(result = WdfRegistryCreateKey(
+                keyParams,
+                &keyName,
+                KEY_ALL_ACCESS,
+                REG_OPTION_NON_VOLATILE,
+                nullptr,
+                WDF_NO_OBJECT_ATTRIBUTES,
+                &keyTargets
+        )))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfRegistryCreateKey failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-		if (!NT_SUCCESS(status = WdfRegistryCreateKey(
-			keyTargets,
-			&keyName,
-			KEY_ALL_ACCESS,
-			REG_OPTION_NON_VOLATILE,
-			nullptr,
-			WDF_NO_OBJECT_ATTRIBUTES,
-			&keyDS
-		)))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfRegistryCreateKey failed with status %!STATUS!",
-				status);
-			break;
-		}
+        RtlUnicodeStringInit(&keyName, L"DualShock");
 
-		DECLARE_UNICODE_STRING_SIZE(serialPath, 4);
-		RtlUnicodeStringPrintf(&serialPath, L"%04d", this->_SerialNo);
+        if (!NT_SUCCESS(result = WdfRegistryCreateKey(
+                keyTargets,
+                &keyName,
+                KEY_ALL_ACCESS,
+                REG_OPTION_NON_VOLATILE,
+                nullptr,
+                WDF_NO_OBJECT_ATTRIBUTES,
+                &keyDS
+        )))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfRegistryCreateKey failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-		if (!NT_SUCCESS(status = WdfRegistryCreateKey(
-			keyDS,
-			&serialPath,
-			KEY_ALL_ACCESS,
-			REG_OPTION_NON_VOLATILE,
-			nullptr,
-			WDF_NO_OBJECT_ATTRIBUTES,
-			&keySerial
-		)))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfRegistryCreateKey failed with status %!STATUS!",
-				status);
-			break;
-		}
+        DECLARE_UNICODE_STRING_SIZE(serialPath, 4);
+        RtlUnicodeStringPrintf(&serialPath, L"%04d", this->_SerialNo);
 
-		RtlUnicodeStringInit(&valueName, L"TargetMacAddress");
+        if (!NT_SUCCESS(result = WdfRegistryCreateKey(
+                keyDS,
+                &serialPath,
+                KEY_ALL_ACCESS,
+                REG_OPTION_NON_VOLATILE,
+                nullptr,
+                WDF_NO_OBJECT_ATTRIBUTES,
+                &keySerial
+        )))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfRegistryCreateKey failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-		status = WdfRegistryQueryValue(
-			keySerial,
-			&valueName,
-			sizeof(MAC_ADDRESS),
-			&this->_TargetMacAddress,
-			nullptr,
-			nullptr
-		);
+        RtlUnicodeStringInit(&valueName, L"TargetMacAddress");
 
-		TraceEvents(TRACE_LEVEL_INFORMATION,
-			TRACE_DS4,
-			"MAC-Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
-			this->_TargetMacAddress.Vendor0,
-			this->_TargetMacAddress.Vendor1,
-			this->_TargetMacAddress.Vendor2,
-			this->_TargetMacAddress.Nic0,
-			this->_TargetMacAddress.Nic1,
-			this->_TargetMacAddress.Nic2);
+        result = WdfRegistryQueryValue(
+                keySerial,
+                &valueName,
+                sizeof(MAC_ADDRESS),
+                &this->_TargetMacAddress,
+                nullptr,
+                nullptr
+        );
 
-		if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-		{
-			GenerateRandomMacAddress(&this->_TargetMacAddress);
+        TraceEvents(TRACE_LEVEL_INFORMATION,
+                TRACE_DS4,
+                "MAC-Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                this->_TargetMacAddress.Vendor0,
+                this->_TargetMacAddress.Vendor1,
+                this->_TargetMacAddress.Vendor2,
+                this->_TargetMacAddress.Nic0,
+                this->_TargetMacAddress.Nic1,
+                this->_TargetMacAddress.Nic2);
 
-			if (!NT_SUCCESS(status = WdfRegistryAssignValue(
-				keySerial,
-				&valueName,
-				REG_BINARY,
-				sizeof(MAC_ADDRESS),
-				static_cast<PVOID>(&this->_TargetMacAddress)
-			)))
-			{
-				TraceError(
-					TRACE_DS4,
-					"WdfRegistryAssignValue failed with status %!STATUS!",
-					status);
-				break;
-			}
-		}
-		else if (!NT_SUCCESS(status))
-		{
-			TraceError(
-				TRACE_DS4,
-				"WdfRegistryQueryValue failed with status %!STATUS!",
-				status);
-			break;
-		}
+        if (result == STATUS_OBJECT_NAME_NOT_FOUND)
+        {
+                GenerateRandomMacAddress(&this->_TargetMacAddress);
 
-		WdfRegistryClose(keySerial);
-		WdfRegistryClose(keyDS);
-		WdfRegistryClose(keyTargets);
-		WdfRegistryClose(keyParams);
+                if (!NT_SUCCESS(result = WdfRegistryAssignValue(
+                        keySerial,
+                        &valueName,
+                        REG_BINARY,
+                        sizeof(MAC_ADDRESS),
+                        static_cast<PVOID>(&this->_TargetMacAddress)
+                )))
+                {
+                        TraceError(
+                                TRACE_DS4,
+                                "WdfRegistryAssignValue failed with status %!STATUS!",
+                                result);
+                        goto exit;
+                }
+        }
+        else if (!NT_SUCCESS(result))
+        {
+                TraceError(
+                        TRACE_DS4,
+                        "WdfRegistryQueryValue failed with status %!STATUS!",
+                        result);
+                goto exit;
+        }
 
-	} while (FALSE);
+exit:
+        if (keySerial) WdfRegistryClose(keySerial);
+        if (keyDS) WdfRegistryClose(keyDS);
+        if (keyTargets) WdfRegistryClose(keyTargets);
+        if (keyParams) WdfRegistryClose(keyParams);
 
-	return status;
+        return result;
 }
 
 VOID ViGEm::Bus::Targets::EmulationTargetDS4::GetConfigurationDescriptorType(PUCHAR Buffer, ULONG Length)
